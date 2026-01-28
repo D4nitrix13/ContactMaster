@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Route;
+use Prometheus\CollectorRegistry;
+use Prometheus\RenderTextFormat;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,6 +54,24 @@ Route::middleware(["auth", "subscription"])->group(callback: function () {
                 ->except(methods: ["show", "edit", "update"]);
         Route::resource(name: "api-tokens", controller: ApiTokenController::class)
                 ->only(methods: ["create", "store"]);
+});
+
+Route::get('/metrics', function (CollectorRegistry $registry) {
+        // Ejemplo de métrica para ver algo en Prometheus
+        $counter = $registry->getOrRegisterCounter(
+                'laravel_app',
+                'demo_requests_total',
+                'Número de requests demo',
+                ['endpoint']
+        );
+
+        $counter->inc(['metrics']);
+
+        $renderer = new RenderTextFormat();
+        $metrics  = $renderer->render($registry->getMetricFamilySamples());
+
+        return response($metrics, 200)
+                ->header('Content-Type', RenderTextFormat::MIME_TYPE);
 });
 
 // Route::middleware(["auth", "subscription"])->resource(name: "contacts", controller: ContactController::class);

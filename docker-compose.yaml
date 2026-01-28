@@ -3,8 +3,6 @@
 # GitLab: https://gitlab.com/D4nitrix13
 # Correo electrónico: danielperezdev@proton.me
 
-# version: '3.8'
-
 secrets:
   POSTGRES_PASSWORD:
     file: ./secrets/POSTGRES_PASSWORD.txt
@@ -24,6 +22,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_DB: ${DB_DATABASE}
       POSTGRES_PASSWORD_FILE: /run/secrets/POSTGRES_PASSWORD
+
   # 172.18.0.3
   app:
     depends_on:
@@ -35,6 +34,7 @@ services:
       - 8000
     ports:
       - 8000:8000
+
   # 172.18.0.4
   pgadmin4:
     depends_on:
@@ -55,3 +55,35 @@ services:
     image: stripe/stripe-cli:v1.29.0
     restart: always
     command: [ "listen", "--forward-to", "app:8000/stripe/webhook" ]
+
+  # -----------------------------------------------------------
+  # 172.18.0.6 – PROMETHEUS
+  # -----------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - 9090:9090
+    depends_on:
+      - app
+
+  # -----------------------------------------------------------
+  # 172.18.0.7 – GRAFANA
+  # -----------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  grafana_data:

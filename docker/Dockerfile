@@ -33,8 +33,9 @@ RUN /sbin/apk update && /sbin/apk upgrade && \
 
 # --chown=zeus:zeus -> --chown=1000:1000
 WORKDIR ${WORKDIR}
-COPY --chown=${UID}:${GID} composer.* package.json package-lock.json ${WORKDIR}
-COPY --chown=${UID}:${GID} ./ ${WORKDIR}
+
+# 1) Copiamos SOLO los manifests para poder cachear composer/npm
+COPY --chown=${UID}:${GID} composer.json composer.lock package.json package-lock.json ./
 
 # SIGTERM -> 15
 STOPSIGNAL ${SIGNAL}
@@ -46,8 +47,14 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=30s \
 # root -> 0
 USER 0
 
+# 2) Instalamos dependencias PHP y JS SIN scripts de Composer
+RUN composer install -o --no-interaction --prefer-dist --no-scripts \
+    && npm ci --no-audit --progress=false
+
+# 3) Copiamos TODO el código de la app
+COPY --chown=${UID}:${GID} ./ ${WORKDIR}
+
 RUN /bin/chown -R ${UID}:${GID} ${WORKDIR}
-RUN composer install -o && npm install
 
 # zeus -> 1000
 USER ${UID}
@@ -62,4 +69,3 @@ LABEL Gitlab="https://gitlab.com/D4nitrix13"
 ENTRYPOINT [ "tini", "--" ]
 # /contacts-application/scripts/runApp.sh
 CMD [ "/bin/sh", "scripts/runApp.sh" ]
-
