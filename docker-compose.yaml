@@ -8,14 +8,18 @@ secrets:
     file: ./secrets/POSTGRES_PASSWORD.txt
 
 services:
-  # 172.18.0.2
+  # -----------------------------------------------------------
+  # 172.18.0.2 – POSTGRESQL
+  # -----------------------------------------------------------
   postgresql:
     build:
       context: .
       dockerfile: ./docker/Dockerfile.db
     restart: always
+    expose:
+      - 5432/tcp
     ports:
-      - 5432:5432
+      - 5432:5432/tcp
     secrets:
       - POSTGRES_PASSWORD
     environment:
@@ -23,7 +27,9 @@ services:
       POSTGRES_DB: ${DB_DATABASE}
       POSTGRES_PASSWORD_FILE: /run/secrets/POSTGRES_PASSWORD
 
-  # 172.18.0.3
+  # -----------------------------------------------------------
+  # 172.18.0.3 – LARAVEL APP
+  # -----------------------------------------------------------
   app:
     depends_on:
       - postgresql
@@ -31,24 +37,30 @@ services:
       context: .
       dockerfile: ./docker/Dockerfile
     expose:
-      - 8000
+      - 8000/tcp
     ports:
-      - 8000:8000
+      - 8000:8000/tcp
 
-  # 172.18.0.4
+  # -----------------------------------------------------------
+  # 172.18.0.4 – PGADMIN
+  # -----------------------------------------------------------
   pgadmin4:
     depends_on:
       - postgresql
     image: elestio/pgadmin
     restart: always
+    expose:
+      - 8080/tcp
     ports:
-      - 8080:8080
+      - 8080:8080/tcp
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
       PGADMIN_LISTEN_PORT: 8080
 
-  # 172.18.0.5
+  # -----------------------------------------------------------
+  # 172.18.0.5 – STRIPE WEBHOOK FORWARDER
+  # -----------------------------------------------------------
   stripe:
     depends_on:
       - app
@@ -57,26 +69,46 @@ services:
     command: [ "listen", "--forward-to", "app:8000/stripe/webhook" ]
 
   # -----------------------------------------------------------
-  # 172.18.0.6 – PROMETHEUS
+  # 172.18.0.6 – POSTGRES EXPORTER
+  # -----------------------------------------------------------
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter
+    restart: unless-stopped
+    expose:
+      - 9187/tcp
+    ports:
+      - 9187:9187/tcp
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgresql:5432/${DB_DATABASE}?sslmode=disable"
+    depends_on:
+      - postgresql
+
+  # -----------------------------------------------------------
+  # 172.18.0.7 – PROMETHEUS
   # -----------------------------------------------------------
   prometheus:
     image: prom/prometheus:latest
     restart: unless-stopped
+    expose:
+      - 9090/tcp
+    ports:
+      - 9090:9090/tcp
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - 9090:9090
     depends_on:
       - app
+      - postgres-exporter
 
   # -----------------------------------------------------------
-  # 172.18.0.7 – GRAFANA
+  # 172.18.0.8 – GRAFANA
   # -----------------------------------------------------------
   grafana:
     image: grafana/grafana:latest
     restart: unless-stopped
+    expose:
+      - 3000/tcp
     ports:
-      - 3000:3000
+      - 3000:3000/tcp
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin

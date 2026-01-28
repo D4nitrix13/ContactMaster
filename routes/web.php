@@ -56,23 +56,35 @@ Route::middleware(["auth", "subscription"])->group(callback: function () {
                 ->only(methods: ["create", "store"]);
 });
 
-Route::get('/metrics', function (CollectorRegistry $registry) {
-        // Ejemplo de métrica para ver algo en Prometheus
-        $counter = $registry->getOrRegisterCounter(
-                'laravel_app',
-                'demo_requests_total',
-                'Número de requests demo',
-                ['endpoint']
-        );
+Route::get('/metrics', function (Request $request, CollectorRegistry $registry): HttpResponse {
+        try {
+                $httpRequestsTotal = $registry->getOrRegisterCounter(
+                        'laravel_app',
+                        'http_requests_total',
+                        'Número total de peticiones HTTP atendidas por la aplicación',
+                        ['endpoint', 'method', 'status']
+                );
 
-        $counter->inc(['metrics']);
+                $httpRequestsTotal->inc([
+                        $request->path(),            // endpoint
+                        $request->getMethod(),       // método HTTP
+                        HttpResponse::HTTP_OK,       // código de estado
+                ]);
 
-        $renderer = new RenderTextFormat();
-        $metrics  = $renderer->render($registry->getMetricFamilySamples());
+                $renderer = new RenderTextFormat();
+                $metrics  = $renderer->render($registry->getMetricFamilySamples());
 
-        return response($metrics, 200)
-                ->header('Content-Type', RenderTextFormat::MIME_TYPE);
-});
+                return response($metrics, HttpResponse::HTTP_OK)
+                        ->header('Content-Type', RenderTextFormat::MIME_TYPE)
+                        ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+        } catch (\Throwable $e) {
+                return response(
+                        "# metrics endpoint error\n",
+                        HttpResponse::HTTP_INTERNAL_SERVER_ERROR
+                )->header('Content-Type', 'text/plain; charset=utf-8');
+        }
+})->name('metrics');
+
 
 // Route::middleware(["auth", "subscription"])->resource(name: "contacts", controller: ContactController::class);
 
