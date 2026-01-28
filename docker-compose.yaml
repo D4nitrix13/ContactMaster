@@ -52,7 +52,7 @@ services:
     expose:
       - 8080/tcp
     ports:
-      - 8080:8080/tcp
+      - 8081:8080/tcp
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
