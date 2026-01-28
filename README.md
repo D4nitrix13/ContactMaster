@@ -128,10 +128,10 @@ php artisan test
 cp .env.example .env
 
 # Iniciar
-docker compose --project-name contacts-application --project-directory . -f docker-compose.yaml up -d
+docker compose --project-name contacts-master-application --project-directory . -f docker-compose.yaml up -d
 
 # Detener y limpiar
-docker compose --project-name contacts-application --project-directory . -f docker-compose.yaml down --remove-orphans --rmi local --timeout 5
+docker compose --project-name contacts-master-application --project-directory . -f docker-compose.yaml down --remove-orphans --rmi local --timeout 5
 ```
 
 ---
@@ -160,5 +160,3 @@ docker compose --project-name contacts-application --project-directory . -f dock
 ## **Licencia**
 
 *MIT © [Daniel Benjamin Perez Morales](https://github.com/D4nitrix13 "https://github.com/D4nitrix13")*
-
----
