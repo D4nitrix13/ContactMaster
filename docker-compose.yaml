@@ -108,7 +108,7 @@ services:
     expose:
       - 3000/tcp
     ports:
-      - 3000:3000/tcp
+      - 3001:3000/tcp
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
