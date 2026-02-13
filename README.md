@@ -115,7 +115,7 @@
 
 ```bash
 php artisan test
-````
+```
 
 **Incluye pruebas unitarias y funcionales organizadas por controlador, usando `DatabaseMigrations` para un entorno limpio en cada prueba.**
 
